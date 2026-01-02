@@ -2,9 +2,14 @@ package main
 
 import (
 	"context"
-	"log"
 	"rest-fiber/config"
+	"rest-fiber/internal/category"
+	"rest-fiber/internal/post"
+	"rest-fiber/internal/user"
 
+	"github.com/joho/godotenv"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
@@ -18,8 +23,9 @@ func InitMigrate(ctx context.Context) error {
 		return err
 	}
 	err = db.WithContext(ctx).AutoMigrate(
-	//Entry models
-	// ...
+		&user.User{},
+		&post.Post{},
+		&category.Category{},
 	)
 	if err != nil {
 		return err
@@ -29,7 +35,13 @@ func InitMigrate(ctx context.Context) error {
 
 func main() {
 	ctx := context.Background()
-	if err := InitMigrate(ctx); err != nil {
-		log.Fatalf("Migration failed: %v", err)
+	err := godotenv.Load()
+	if err != nil {
+		logrus.Fatalf("Error loading .env file: %v", err)
 	}
+	viper.AutomaticEnv()
+	if err = InitMigrate(ctx); err != nil {
+		logrus.Fatalf("Migration failed: %v", err)
+	}
+	logrus.Println("Migration Succeed")
 }

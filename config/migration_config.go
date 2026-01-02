@@ -5,15 +5,14 @@ import (
 	"os"
 	"time"
 
+	"github.com/spf13/viper"
 	"gorm.io/gorm/logger"
 )
 
-type DB_CONFIG logger.Interface
-
-func MigrationConfig() (string, DB_CONFIG) {
-	var dsn string = "user:pass@tcp(127.0.0.1:3306)/dbname?charset=utf8mb4&parseTime=True&loc=Local"
+func MigrationConfig() (string, logger.Interface) {
+	var dsn string = viper.GetString("DATABASE_URL")
 	writer := log.New(os.Stdout, "\r\n", log.LstdFlags)
-	var logConfig DB_CONFIG = logger.New(
+	var logConfig logger.Interface = logger.New(
 		writer,
 		logger.Config{
 			SlowThreshold:             1 * time.Second,
