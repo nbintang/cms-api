@@ -9,14 +9,18 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
 func InitMigrate(ctx context.Context) error {
-	dsn, logConfig := config.MigrationConfig()
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
+	logConfig := config.NewDBLogger()
+	env, err := config.NewEnv()
+	if err != nil {
+		return err
+	}
+
+	db, err := gorm.Open(mysql.Open(env.DatabaseURL), &gorm.Config{
 		Logger: logConfig,
 	})
 	if err != nil {
@@ -35,12 +39,10 @@ func InitMigrate(ctx context.Context) error {
 
 func main() {
 	ctx := context.Background()
-	err := godotenv.Load()
-	if err != nil {
+	if err := godotenv.Load(); err != nil {
 		logrus.Fatalf("Error loading .env file: %v", err)
 	}
-	viper.AutomaticEnv()
-	if err = InitMigrate(ctx); err != nil {
+	if err := InitMigrate(ctx); err != nil {
 		logrus.Fatalf("Migration failed: %v", err)
 	}
 	logrus.Println("Migration Succeed")

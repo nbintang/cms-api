@@ -1,7 +1,22 @@
 package main
 
-import "fmt"
+import (
+	"rest-fiber/config"
+	"rest-fiber/internal"
+	"rest-fiber/internal/user"
+
+	"github.com/joho/godotenv"
+	"github.com/sirupsen/logrus"
+	"go.uber.org/fx"
+)
 
 func main() {
-	fmt.Println("Hello, World!")
+	if err := godotenv.Load(); err != nil {
+		logrus.Fatalf("Error loading .env file: %v", err)
+	}
+	fx.New(
+		config.Module,
+		internal.Module,
+		user.Module,
+	).Run()
 }
