@@ -1,7 +1,7 @@
 package auth
-
-import "rest-fiber/internal/user"
-
+ 
 type RegisterRequestDTO struct {
-	user.UserRequestDTO
+	Name     string `json:"name" validate:"required"`
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=6"`
 }

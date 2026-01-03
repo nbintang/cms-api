@@ -11,9 +11,14 @@ import (
 )
 
 func NewApp() *fiber.App {
-	return fiber.New(fiber.Config{
+	app := fiber.New(fiber.Config{
 		ErrorHandler: pkg.DefaultErrorHandler,
 	})
+	api := app.Group("api")
+	api.Get("/", func(c *fiber.Ctx) error {
+		return c.JSON(fiber.Map{"hello_to": "world"})
+	})
+	return app
 }
 
 var RunApp = func(lc fx.Lifecycle, app *fiber.App, env config.Env) {
@@ -36,5 +41,3 @@ var RunApp = func(lc fx.Lifecycle, app *fiber.App, env config.Env) {
 		},
 	})
 }
-
-

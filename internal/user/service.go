@@ -18,7 +18,7 @@ type userService struct {
 }
 
 func NewUserService(userRepo UserRepository) UserService {
-	return &userService{userRepo: userRepo}
+	return &userService{userRepo}
 }
 
 func (s *userService) FindAllUsers(ctx context.Context) ([]UserResponseDTO, error) {

@@ -10,7 +10,8 @@ type UserRepository interface {
 	FindAll(ctx context.Context) ([]User, error)
 	FindByID(ctx context.Context, id string) (User, error)
 	FindByEmail(ctx context.Context, email string) (User, error)
-	Create(ctx context.Context, dto UserRequestDTO) (User, error)
+	FindExistsByEmail(ctx context.Context, email string) (bool, error)
+	Create(ctx context.Context, dto *User) error
 }
 
 type userRepository struct {
@@ -18,7 +19,7 @@ type userRepository struct {
 }
 
 func NewUserRepository(db *gorm.DB) UserRepository {
-	return &userRepository{db: db}
+	return &userRepository{db}
 }
 
 func (r *userRepository) FindAll(ctx context.Context) ([]User, error) {
@@ -39,13 +40,14 @@ func (r *userRepository) FindByEmail(ctx context.Context, email string) (User, e
 	return user, err
 }
 
-func (r *userRepository) Create(ctx context.Context, dto UserRequestDTO) (User, error) {
-	var user = User{
-		Name:     dto.Name,
-		Password: dto.Password,
-		Email:    dto.Email,
-		Role:     Member,
-	}
-	err := r.db.WithContext(ctx).Create(&user).Error
-	return user, err
+func (r *userRepository) FindExistsByEmail(ctx context.Context, email string) (bool, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&User{}).Scopes(WhereEmail(email)).Count(&count).Error
+	return count > 0, err
+}
+
+func (r *userRepository) Create(ctx context.Context, dto *User) error {
+	dto.Role = Member
+	err := r.db.WithContext(ctx).Create(&dto).Error
+	return err
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"rest-fiber/config"
 	"rest-fiber/internal"
+	"rest-fiber/internal/auth"
 	"rest-fiber/internal/user"
 
 	"github.com/joho/godotenv"
@@ -18,5 +19,6 @@ func main() {
 		config.Module,
 		internal.Module,
 		user.Module,
+		auth.Module,
 	).Run()
 }

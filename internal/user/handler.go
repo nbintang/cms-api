@@ -18,7 +18,7 @@ type userHandler struct {
 }
 
 func NewUserHandler(userService UserService) UserHandler {
-	return &userHandler{userService: userService}
+	return &userHandler{userService}
 }
 
 func (h *userHandler) GetAllUsers(c *fiber.Ctx) error {
