@@ -9,6 +9,8 @@ import (
 type UserRepository interface {
 	FindAll(ctx context.Context) ([]User, error)
 	FindByID(ctx context.Context, id string) (User, error)
+	FindByEmail(ctx context.Context, email string) (User, error)
+	Create(ctx context.Context, dto UserRequestDTO) (User, error)
 }
 
 type userRepository struct {
@@ -27,6 +29,23 @@ func (r *userRepository) FindAll(ctx context.Context) ([]User, error) {
 
 func (r *userRepository) FindByID(ctx context.Context, id string) (User, error) {
 	var user User
-	err := r.db.WithContext(ctx).Take(&user, "id = ?", id).Error
+	err := r.db.WithContext(ctx).Scopes(WhereID(id), SelectUserPublicFields).Take(&user).Error
+	return user, err
+}
+
+func (r *userRepository) FindByEmail(ctx context.Context, email string) (User, error) {
+	var user User
+	err := r.db.WithContext(ctx).Scopes(WhereEmail(email),SelectUserPublicFields).Take(&user).Error
+	return user, err
+}
+
+func (r *userRepository) Create(ctx context.Context, dto UserRequestDTO) (User, error) {
+	var user = User{
+		Name:     dto.Name,
+		Password: dto.Password,
+		Email:    dto.Email,
+		Role:     Member,
+	}
+	err := r.db.WithContext(ctx).Create(&user).Error
 	return user, err
 }

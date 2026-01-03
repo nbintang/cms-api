@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 )
 
 type Status string
@@ -18,12 +17,12 @@ const (
 )
 
 type Post struct {
-	ID         string            `gorm:"type:char(36);primaryKey;column:id"`
+	ID         uuid.UUID         `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 	Title      string            `gorm:"type:varchar(255);not null;column:title"`
 	Body       string            `gorm:"type:text;not null;column:body"`
 	UserID     string            `gorm:"type:char(36);not null;column:user_id"`
 	CategoryID string            `gorm:"type:char(36);not null;column:category_id"`
-	Status     Status            `gorm:"type:enum('PUBLISHED','DRAFT');not null;default:'DRAFT'"`
+	Status     Status            `gorm:"type:status_type;not null;default:'DRAFT'"`
 	Category   category.Category `gorm:"foreignKey:CategoryID;references:ID"`
 	CreatedAt  time.Time         `gorm:"column:created_at;autoCreateTime"`
 	UpdatedAt  time.Time         `gorm:"column:updated_at;autoUpdateTime"`
@@ -36,12 +35,6 @@ func (p *Post) TableName() string {
 
 func (p *Post) IsPublished() bool {
 	return p.Status == Published
-}
-func (p *Post) BeforeCreate(tx *gorm.DB) error {
-	if p.ID == "" {
-		p.ID = uuid.NewString()
-	}
-	return nil
 }
 
 func (r *Status) Scan(value any) error {

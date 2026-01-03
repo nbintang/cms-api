@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 	"rest-fiber/config"
-	"time"
+	"rest-fiber/pkg"
 
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/fx"
@@ -12,26 +12,14 @@ import (
 
 func NewApp() *fiber.App {
 	return fiber.New(fiber.Config{
-		ErrorHandler: func(c *fiber.Ctx, err error) error {
-			statusCode := fiber.StatusInternalServerError
-			msg := "Internal Server Error"
-			if e, ok := err.(*fiber.Error); ok {
-				statusCode = e.Code
-				msg = e.Message
-			}
-			return c.Status(statusCode).JSON(fiber.Map{
-				"error": msg,
-				"status": statusCode,
-				"timestamp": time.Now().Unix(),
-			})
-		},
+		ErrorHandler: pkg.DefaultErrorHandler,
 	})
 }
 
-func RunApp(lc fx.Lifecycle, app *fiber.App, env config.Env) {
+var RunApp = func(lc fx.Lifecycle, app *fiber.App, env config.Env) {
 	addr := env.AppAddr
 	if addr == "" {
-		addr = ":3000"
+		addr = ":8080"
 	}
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
@@ -49,8 +37,4 @@ func RunApp(lc fx.Lifecycle, app *fiber.App, env config.Env) {
 	})
 }
 
-var Module = fx.Module(
-	"App",
-	fx.Provide(NewApp),
-	fx.Invoke(RunApp),
-)
+

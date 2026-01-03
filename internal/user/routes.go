@@ -9,5 +9,5 @@ func RegisterUserRoutes(app *fiber.App, h UserHandler){
 	
 	users := api.Group("/users")
 	users.Get("/", h.GetAllUsers) 
-	
+	users.Get("/:id",h.GetUserByID)
 }

@@ -2,16 +2,25 @@ package config
 
 import (
 	"context"
-	"time"
-
+	"fmt"
 	"go.uber.org/fx"
-	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+	"time"
 )
 
 func NewDatabase(lc fx.Lifecycle, env Env, logger logger.Interface) (*gorm.DB, error) {
-	db, err := gorm.Open(mysql.Open(env.DatabaseURL), &gorm.Config{
+	dbConf := "host=%s user=%s password=%s dbname=%s port=%d"
+	dsn := fmt.Sprintf(
+		dbConf,
+		env.DatabaseHost,
+		env.DatabaseUser,
+		env.DatabasePassword,
+		env.DatabaseName,
+		env.DatabasePort,
+	)
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		Logger: logger,
 	})
 	if err != nil {
@@ -31,7 +40,7 @@ func NewDatabase(lc fx.Lifecycle, env Env, logger logger.Interface) (*gorm.DB, e
 			return nil
 		},
 	})
-	
+
 	sqlDB.SetMaxIdleConns(10)
 	sqlDB.SetMaxOpenConns(25)
 	sqlDB.SetConnMaxLifetime(5 * time.Minute)

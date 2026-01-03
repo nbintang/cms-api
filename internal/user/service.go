@@ -9,8 +9,8 @@ import (
 )
 
 type UserService interface {
-	FindAllUsers(ctx context.Context) ([]UserResponse, error)
-	FindUserByID(ctx context.Context, id string) (*UserResponse, error)
+	FindAllUsers(ctx context.Context) ([]UserResponseDTO, error)
+	FindUserByID(ctx context.Context, id string) (*UserResponseDTO, error)
 }
 
 type userService struct {
@@ -21,15 +21,15 @@ func NewUserService(userRepo UserRepository) UserService {
 	return &userService{userRepo: userRepo}
 }
 
-func (s *userService) FindAllUsers(ctx context.Context) ([]UserResponse, error) {
+func (s *userService) FindAllUsers(ctx context.Context) ([]UserResponseDTO, error) {
 	users, err := s.userRepo.FindAll(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	userResponses := make([]UserResponse, 0, len(users))
+	userResponses := make([]UserResponseDTO, 0, len(users))
 	for _, user := range users {
-		userResponses = append(userResponses, UserResponse{
+		userResponses = append(userResponses, UserResponseDTO{
 			ID:        user.ID,
 			Name:      user.Name,
 			Email:     user.Email,
@@ -40,7 +40,7 @@ func (s *userService) FindAllUsers(ctx context.Context) ([]UserResponse, error) 
 	return userResponses, nil
 }
 
-func (s *userService) FindUserByID(ctx context.Context, id string) (*UserResponse, error) {
+func (s *userService) FindUserByID(ctx context.Context, id string) (*UserResponseDTO, error) {
 	user, err := s.userRepo.FindByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -48,7 +48,7 @@ func (s *userService) FindUserByID(ctx context.Context, id string) (*UserRespons
 		}
 		return nil, err
 	}
-	return &UserResponse{
+	return &UserResponseDTO{
 		ID:        user.ID,
 		Name:      user.Name,
 		Email:     user.Email,

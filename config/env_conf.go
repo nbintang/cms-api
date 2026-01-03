@@ -2,15 +2,19 @@ package config
 
 import (
 	"fmt"
-	"strings"
-
 	"github.com/spf13/viper"
+	"strings"
 )
 
 type Env struct {
-	DatabaseURL string `mapstructure:"DATABASE_URL"`
-	AppEnv      string `mapstructure:"APP_ENV"`
-	AppAddr     string `mapstructure:"APP_ADDR"`
+	DatabaseURL      string `mapstructure:"DATABASE_URL"`
+	DatabaseHost     string `mapstructure:"DATABASE_HOST"`
+	DatabaseUser     string `mapstructure:"DATABASE_USER"`
+	DatabasePassword string `mapstructure:"DATABASE_PASSWORD"`
+	DatabaseName     string `mapstructure:"DATABASE_NAME"`
+	DatabasePort     int    `mapstructure:"DATABASE_PORT"`
+	AppEnv           string `mapstructure:"APP_ENV"`
+	AppAddr          string `mapstructure:"APP_ADDR"`
 }
 
 func NewEnv() (Env, error) {
