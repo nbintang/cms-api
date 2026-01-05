@@ -2,39 +2,20 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"rest-fiber/config"
 	"rest-fiber/internal/category"
 	"rest-fiber/internal/infra"
 	"rest-fiber/internal/post"
 	"rest-fiber/internal/user"
-
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
 )
 
 func InitMigrate(ctx context.Context) error {
-	logConfig := infra.NewDBLogger()
-
-	env, err := config.NewEnv()
+	dbLogger := infra.NewDBLogger()
+	env, err := config.GetEnvs()
 	if err != nil {
 		return err
 	}
-
-	dbConf := "host=%s user=%s password=%s dbname=%s port=%d sslmode=disable TimeZone=UTC"
-	dsn := fmt.Sprintf(
-		dbConf,
-		env.DatabaseHost,
-		env.DatabaseUser,
-		env.DatabasePassword,
-		env.DatabaseName,
-		env.DatabasePort,
-	)
-
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logConfig,
-	})
-
+	db, err := infra.GetDatabaseStandalone(env, dbLogger)
 	if err != nil {
 		return err
 	}

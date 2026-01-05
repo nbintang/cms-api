@@ -19,8 +19,10 @@ func DefaultErrorHandler(c *fiber.Ctx, err error) error {
 			})
 		}
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": "validation error",
-			"errors":  out,
+			"message":     "validation error",
+			"status_code": statusCode,
+			"timestamp":   time.Now().Unix(),
+			"errors":      out,
 		})
 	}
 
@@ -29,8 +31,8 @@ func DefaultErrorHandler(c *fiber.Ctx, err error) error {
 		msg = e.Message
 	}
 	return c.Status(statusCode).JSON(fiber.Map{
-		"error":     msg,
-		"status":    statusCode,
-		"timestamp": time.Now().Unix(),
+		"error":       msg,
+		"status_code": statusCode,
+		"timestamp":   time.Now().Unix(),
 	})
 }

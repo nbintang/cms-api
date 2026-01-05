@@ -10,8 +10,11 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
+type databaseImpl struct {
+	db *gorm.DB
+}
 
-func NewDatabase(lc fx.Lifecycle, env config.Env, logger *DBLogger) (*gorm.DB, error) {
+func GetDatabaseStandalone(env config.Env, logger *DBLogger) (*gorm.DB, error) {
 	dbConf := "host=%s user=%s password=%s dbname=%s port=%d"
 	dsn := fmt.Sprintf(
 		dbConf,
@@ -21,9 +24,13 @@ func NewDatabase(lc fx.Lifecycle, env config.Env, logger *DBLogger) (*gorm.DB, e
 		env.DatabaseName,
 		env.DatabasePort,
 	)
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+	return gorm.Open(postgres.Open(dsn), &gorm.Config{
 		Logger: logger,
 	})
+}
+
+func NewDatabase(lc fx.Lifecycle, env config.Env, logger *DBLogger) (*gorm.DB, error) {
+	db, err := GetDatabaseStandalone(env, logger)
 	if err != nil {
 		return nil, err
 	}

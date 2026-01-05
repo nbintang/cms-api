@@ -10,10 +10,10 @@ type userRouteImpl struct {
 	h UserHandler
 }
 
-func NewUserRoute(h UserHandler) contract.Route {
+func NewUserRoute(h UserHandler) contract.ProtectedRoute {
 	return &userRouteImpl{h}
 }
-func (r *userRouteImpl) RegisterRoute(api fiber.Router) {
+func (r *userRouteImpl) RegisterProtectedRoute(api fiber.Router) {
 	users := api.Group("/users")
 	users.Get("/", r.h.GetAllUsers)
 	users.Get("/:id", r.h.GetUserByID)

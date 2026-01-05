@@ -7,11 +7,11 @@ import (
 )
 
 var Module = fx.Module(
-	"User",
+	"user",
 	fx.Provide(
 		NewUserRepository,
 		NewUserService,
 		NewUserHandler,
-		setup.RouteProvider[UserHandler](NewUserRoute),
+		setup.ProtectedRouteProvider[UserHandler](NewUserRoute),
 	),
 )

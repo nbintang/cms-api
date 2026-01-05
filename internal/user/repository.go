@@ -1,11 +1,11 @@
 package user
 
 import (
-	"context" 
+	"context"
+	"errors"
 
 	"gorm.io/gorm"
 )
-
 
 type userRepositoryImpl struct {
 	db *gorm.DB
@@ -21,16 +21,26 @@ func (r *userRepositoryImpl) FindAll(ctx context.Context) ([]User, error) {
 	return user, err
 }
 
-func (r *userRepositoryImpl) FindByID(ctx context.Context, id string) (User, error) {
+func (r *userRepositoryImpl) FindByID(ctx context.Context, id string) (*User, error) {
 	var user User
-	err := r.db.WithContext(ctx).Scopes(WhereID(id), SelectPublicFields).Take(&user).Error
-	return user, err
+	if err := r.db.WithContext(ctx).Scopes(WhereID(id), SelectPublicFields).Take(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &user, nil
 }
 
-func (r *userRepositoryImpl) FindByEmail(ctx context.Context, email string) (User, error) {
+func (r *userRepositoryImpl) FindByEmail(ctx context.Context, email string) (*User, error) {
 	var user User
-	err := r.db.WithContext(ctx).Scopes(WhereEmail(email), SelectPublicFields).Take(&user).Error
-	return user, err
+	if err := r.db.WithContext(ctx).Scopes(WhereEmail(email), SelectPublicFields).Take(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &user, nil
 }
 
 func (r *userRepositoryImpl) FindExistsByEmail(ctx context.Context, email string) (bool, error) {

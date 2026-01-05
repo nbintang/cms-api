@@ -4,15 +4,11 @@ import (
 	"context"
 	"errors"
 	"rest-fiber/internal/infra"
-	"rest-fiber/pkg"
-
-	"gorm.io/gorm"
 )
-
 
 type userServiceImpl struct {
 	userRepo UserRepository
-	logger *infra.AppLogger
+	logger   *infra.AppLogger
 }
 
 func NewUserService(userRepo UserRepository, logger *infra.AppLogger) UserService {
@@ -41,12 +37,11 @@ func (s *userServiceImpl) FindAllUsers(ctx context.Context) ([]UserResponseDTO, 
 func (s *userServiceImpl) FindUserByID(ctx context.Context, id string) (*UserResponseDTO, error) {
 	user, err := s.userRepo.FindByID(ctx, id)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, pkg.ErrNotFound
-		}
 		return nil, err
 	}
-	
+	if user == nil {
+		return nil, errors.New("User Not Found")
+	}
 	return &UserResponseDTO{
 		ID:        user.ID,
 		Name:      user.Name,

@@ -8,16 +8,10 @@ import (
 )
 
 var RunApp = func(lc fx.Lifecycle, a *App) { a.Run(lc) }
-
-var BusinessModules = fx.Module(
-	"Modules",
+var Module = fx.Module(
+	"app",
 	user.Module,
 	auth.Module,
-)
-
-var Module = fx.Module(
-	"App",
-	BusinessModules,
 	fx.Provide(NewApp),
 	fx.Invoke(
 		RegisterAllRoutes,

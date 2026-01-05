@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"rest-fiber/config"
+	"rest-fiber/internal/middleware"
 	"rest-fiber/internal/setup"
 
 	"github.com/gofiber/fiber/v2"
@@ -11,9 +12,10 @@ import (
 )
 
 type App struct {
-	Fiber *fiber.App
-	API   fiber.Router
-	Env   config.Env
+	Fiber          *fiber.App
+	PublicRoute    fiber.Router
+	ProtectedRoute fiber.Router
+	Env            config.Env
 }
 
 func NewApp(env config.Env) *App {
@@ -24,15 +26,16 @@ func NewApp(env config.Env) *App {
 	api := f.Group("/api")
 
 	api.Get("/", func(c *fiber.Ctx) error {
-		return c.Status(200).JSON(fiber.Map{
-			"Test": "tod",
-		})
+		return c.Status(200).SendString("Wellcome to API")
 	})
 
+	protected := api.Group("/protected", middleware.AuthJWT)
+
 	return &App{
-		Fiber: f,
-		API:   api,
-		Env:   env,
+		Fiber:          f,
+		PublicRoute:    api,
+		ProtectedRoute: protected,
+		Env:            env,
 	}
 }
 

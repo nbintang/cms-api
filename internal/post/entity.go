@@ -18,6 +18,7 @@ const (
 
 type Post struct {
 	ID         uuid.UUID         `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	ImageURL      string            `gorm:"type:text;null;default:null;column:image_url"`
 	Title      string            `gorm:"type:varchar(255);not null;column:title"`
 	Body       string            `gorm:"type:text;not null;column:body"`
 	UserID     string            `gorm:"type:char(36);not null;column:user_id"`

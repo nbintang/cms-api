@@ -2,16 +2,14 @@ package main
 
 import (
 	"context"
+	"rest-fiber/pkg"
 
-	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
 )
 
 func main() {
 	ctx := context.Background()
-	if err := godotenv.Load(); err != nil {
-		logrus.Fatalf("Error loading .env file: %v", err)
-	}
+	pkg.LoadEnv()
 	if err := InitMigrate(ctx); err != nil {
 		logrus.Fatalf("Migration failed: %v", err)
 	}
