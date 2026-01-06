@@ -7,7 +7,7 @@ import (
 
 func CurrentAuthUser() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		t, ok := c.Locals("jwt").(*jwt.Token)
+		t, ok := c.Locals("access-auth").(*jwt.Token)
 		if !ok || t == nil {
 			return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 		}

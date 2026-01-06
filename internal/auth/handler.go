@@ -3,6 +3,7 @@ package auth
 import (
 	"rest-fiber/config"
 	"rest-fiber/internal/infra"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -40,13 +41,21 @@ func (h *authHandler) Register(c *fiber.Ctx) error {
 func (h *authHandler) VerifyEmail(c *fiber.Ctx) error {
 	token := c.Query("token")
 	ctx := c.UserContext()
-	token, err := h.authService.VerifyEmailToken(ctx, token)
+	tokens, err := h.authService.VerifyEmailToken(ctx, token)
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
+	c.Cookie(&fiber.Cookie{
+		Name:     "refresh_token",
+		Value:    tokens.RefreshToken,
+		Expires:  time.Now().Add(24 * time.Hour),
+		Secure:   true,
+		HTTPOnly: true,
+	})
 	return c.Status(200).JSON(fiber.Map{
-		"message":      "email verified successfully",
-		"access_token": token,
+		"message":       "email verified successfully",
+		"access_token":  tokens.AccessToken,
+		"refresh_token": tokens.RefreshToken,
 	})
 }
 
@@ -57,12 +66,35 @@ func (h *authHandler) Login(c *fiber.Ctx) error {
 	if err := c.BodyParser(&dto); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
-	token, err := h.authService.Login(ctx, &dto)
+	tokens, err := h.authService.Login(ctx, &dto)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	}
+
+	c.Cookie(&fiber.Cookie{
+		Name:     "refresh_token",
+		Value:    tokens.RefreshToken,
+		Expires:  time.Now().Add(24 * time.Hour),
+		Secure:   true,
+		HTTPOnly: true,
+	})
+	return c.Status(200).JSON(fiber.Map{
+		"message":       "login successful",
+		"access_token":  tokens.AccessToken,
+		"refresh_token": tokens.RefreshToken,
+	})
+}
+
+func (h *authHandler) RefreshToken(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	refreshToken := c.Cookies("refresh_token")
+	tokens, err := h.authService.RefreshToken(ctx, refreshToken)
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
 	return c.Status(200).JSON(fiber.Map{
-		"message":      "login successful",
-		"access_token": token,
+		"message":       "login successful",
+		"access_token":  tokens.AccessToken,
+		"refresh_token": tokens.RefreshToken,
 	})
 }

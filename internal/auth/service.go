@@ -11,6 +11,11 @@ import (
 	"time"
 )
 
+type Tokens struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+}
+
 type authService struct {
 	userRepo     user.UserRepository
 	tokenService infra.TokenService
@@ -72,45 +77,44 @@ func (s *authService) Register(ctx context.Context, dto *RegisterRequestDTO) err
 	return nil
 }
 
-func (s *authService) Login(ctx context.Context, dto *LoginRequestDTO) (string, error) {
+func (s *authService) Login(ctx context.Context, dto *LoginRequestDTO) (Tokens, error) {
 	user, err := s.userRepo.FindByEmail(ctx, dto.Email)
 	if err != nil {
-		return "", err
+		return Tokens{}, err
 	}
 	if user == nil {
-		return "", errors.New("User Not Found")
+		return Tokens{}, errors.New("User Not Found")
 	}
 	if err := pkg.ComparePassword(dto.Password, user.Password); err != nil {
-    s.logger.Errorf("bcrypt compare failed: %v (hash=%q)", err, user.Password)
-    return "", errors.New("Invalid Password")
-}
-	if user.IsEmailVerified == false {
-		return "", errors.New("Email Not Verified")
+		s.logger.Errorf("bcrypt compare failed: %v (hash=%q)", err, user.Password)
+		return Tokens{}, errors.New("Invalid Password")
 	}
-	return s.generateAccessToken(user.ID.String(), user.Email)
+	if user.IsEmailVerified == false {
+		return Tokens{}, errors.New("Email Not Verified")
+	}
+	return s.generateTokens(user.ID.String(), user.Email)
 }
 
-func (s *authService) VerifyEmailToken(ctx context.Context, token string) (string, error) {
-	claims, err := s.tokenService.VerifyToken(token, s.env.JWTVerificationSecret)
+func (s *authService) VerifyEmailToken(ctx context.Context, verificationToken string) (Tokens, error) {
+	claims, err := s.tokenService.VerifyToken(verificationToken, s.env.JWTVerificationSecret)
 	if err != nil {
-		return "", err
+		return Tokens{}, err
 	}
 	userID := (*claims)["id"].(string)
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
-		return "", err
+		return Tokens{}, err
 	}
 	if user == nil {
-		return "", errors.New("User Not Found")
+		return Tokens{}, errors.New("User Not Found")
 	}
 	user.IsEmailVerified = true
 	if err = s.userRepo.Update(ctx, user.ID.String(), user); err != nil {
-		return "", err
+		return Tokens{}, err
 	}
 
-	return s.generateAccessToken(user.ID.String(), user.Email)
+	return s.generateTokens(user.ID.String(), user.Email)
 }
-
 
 func (s *authService) generateVerificationToken(ID string) (string, error) {
 	return s.tokenService.GenerateToken(&infra.GenerateTokenParams{
@@ -121,12 +125,50 @@ func (s *authService) generateVerificationToken(ID string) (string, error) {
 	)
 }
 
-func (a *authService) generateAccessToken(ID string, Email string) (string, error) {
-	return a.tokenService.GenerateToken(&infra.GenerateTokenParams{
-		ID: ID,
+func (s *authService) generateTokens(ID string, Email string) (Tokens, error) {
+	tokens := Tokens{}
+	accessToken, err := s.tokenService.GenerateToken(&infra.GenerateTokenParams{
+		ID:    ID,
+		Email: Email,
 	},
-		a.env.JWTAccessSecret,
-		3*time.Minute,
+		s.env.JWTAccessSecret,
+		3*time.Hour,
 	)
+	if err != nil {
+		return tokens, err
+	}
+	refreshToken, err := s.tokenService.GenerateToken(&infra.GenerateTokenParams{
+		ID:    ID,
+		Email: Email,
+	},
+		s.env.JWTRefreshSecret,
+		24*time.Hour,
+	)
+	if err != nil {
+		return tokens, err
+	}
+
+	tokens.AccessToken = accessToken
+	tokens.RefreshToken = refreshToken
+	return tokens, nil
 }
 
+
+func (s *authService) RefreshToken(ctx context.Context, refreshToken string) (Tokens, error) {
+	claims, err := s.tokenService.VerifyToken(refreshToken, s.env.JWTRefreshSecret)
+	if err != nil {
+		return Tokens{}, err
+	}
+	userID := (*claims)["id"].(string)
+	user, err := s.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return Tokens{}, err
+	}
+	if user == nil {
+		return Tokens{}, errors.New("User Not Found")
+	}
+	if user.IsEmailVerified == false {
+		return Tokens{}, errors.New("Email Not Verified")
+	}
+	return s.generateTokens(user.ID.String(), user.Email)
+}

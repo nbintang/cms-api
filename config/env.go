@@ -16,7 +16,8 @@ type Env struct {
 	DatabasePort          int    `mapstructure:"DATABASE_PORT"`
 	AppEnv                string `mapstructure:"APP_ENV"`
 	AppAddr               string `mapstructure:"APP_ADDR"`
-	JWTAccessSecret             string `mapstructure:"JWT_ACCESS_SECRET"`
+	JWTAccessSecret       string `mapstructure:"JWT_ACCESS_SECRET"`
+	JWTRefreshSecret      string `mapstructure:"JWT_REFRESH_SECRET"`
 	JWTVerificationSecret string `mapstructure:"JWT_VERIFICATION_SECRET"`
 	SMTPHost              string `mapstructure:"SMTP_HOST"`
 	SMTPPort              string `mapstructure:"SMTP_PORT"`

@@ -1,8 +1,22 @@
 package middleware
 
-import "github.com/gofiber/fiber/v2"
+import (
+	"rest-fiber/config"
 
-func AuthJWTRefresh(c *fiber.Ctx) error {
+	jwtware "github.com/gofiber/contrib/jwt"
+	"github.com/gofiber/fiber/v2"
+)
 
-	return nil
+func AuthRefresh(env config.Env) fiber.Handler {
+	return jwtware.New(jwtware.Config{
+		SigningKey: jwtware.SigningKey{Key: []byte(env.JWTRefreshSecret)},
+		ContextKey: "refresh-auth",
+		ErrorHandler: func(c *fiber.Ctx, err error) error {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"message":     "unauthorized",
+				"status_code": fiber.StatusUnauthorized,
+				"error":       err.Error(),
+			})
+		},
+	})
 }

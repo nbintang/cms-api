@@ -7,6 +7,8 @@ import (
 	"rest-fiber/internal/infra"
 	"rest-fiber/internal/post"
 	"rest-fiber/internal/user"
+
+	"gorm.io/gorm"
 )
 
 func InitMigrate(ctx context.Context) error {
@@ -20,21 +22,7 @@ func InitMigrate(ctx context.Context) error {
 		return err
 	}
 
-	if err = db.Debug().Exec(`
-		DO $$ BEGIN
-			CREATE TYPE role_type AS ENUM ('ADMIN', 'MEMBER');
-		EXCEPTION
-			WHEN duplicate_object THEN null;
-		END $$;`).Error; err != nil {
-		return err
-	}
-
-	if err = db.Debug().Exec(`
-		DO $$ BEGIN
-			CREATE TYPE status_type AS ENUM ('PUBLISHED', 'DRAFT');
-		EXCEPTION
-			WHEN duplicate_object THEN null;
-		END $$;`).Error; err != nil {
+	if err := createEnums(ctx, db); err != nil {
 		return err
 	}
 
@@ -43,4 +31,28 @@ func InitMigrate(ctx context.Context) error {
 		&post.Post{},
 		&category.Category{},
 	)
+}
+
+func createEnums(ctx context.Context, db *gorm.DB) error {
+	return db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Debug().Exec(`
+		DO $$ BEGIN
+			CREATE TYPE role_type AS ENUM ('ADMIN', 'MEMBER');
+		EXCEPTION
+			WHEN duplicate_object THEN null;
+		END $$;`).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Debug().Exec(`
+		DO $$ BEGIN
+			CREATE TYPE status_type AS ENUM ('PUBLISHED', 'DRAFT');
+		EXCEPTION
+			WHEN duplicate_object THEN null;
+		END $$;`).Error; err != nil {
+			return err
+		}
+		return nil
+	})
+
 }

@@ -10,7 +10,7 @@ import (
 func AuthAccess(env config.Env) fiber.Handler {
 	return jwtware.New(jwtware.Config{
 		SigningKey: jwtware.SigningKey{Key: []byte(env.JWTAccessSecret)},
-		ContextKey: "jwt",
+		ContextKey: "access-auth",
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"message":     "unauthorized",
