@@ -20,7 +20,7 @@ func DefaultErrorHandler(c *fiber.Ctx, err error) error {
 		}
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"message":     "validation error",
-			"status_code": statusCode,
+			"status_code": fiber.StatusBadRequest,
 			"timestamp":   time.Now().Unix(),
 			"errors":      out,
 		})

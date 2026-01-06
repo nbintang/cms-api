@@ -12,7 +12,7 @@ var Module = fx.Module(
 	fx.Provide(
 		NewAuthService,
 		NewAuthHandler,
-		setup.RouteProvider[AuthHandler, contract.Route](
+		setup.RouteProvider[AuthRouteParams, contract.Route](
 			NewAuthRoute,
 			setup.RoutePublic,
 		),
