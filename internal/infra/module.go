@@ -11,5 +11,7 @@ var Module = fx.Module(
 		NewValidator,
 		NewTokenService,
 		NewEmailService,
+		NewRedisService,
 	),
+	fx.Invoke(RegisterRedisLifecycle),
 )

@@ -1,30 +1,34 @@
 package config
 
-import (
-	"fmt"
+import ( 
 	"strings"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/spf13/viper"
 )
 
 type Env struct {
-	DatabaseURL           string `mapstructure:"DATABASE_URL"`
-	DatabaseHost          string `mapstructure:"DATABASE_HOST"`
-	DatabaseUser          string `mapstructure:"DATABASE_USER"`
-	DatabasePassword      string `mapstructure:"DATABASE_PASSWORD"`
-	DatabaseName          string `mapstructure:"DATABASE_NAME"`
-	DatabasePort          int    `mapstructure:"DATABASE_PORT"`
-	AppEnv                string `mapstructure:"APP_ENV"`
-	AppAddr               string `mapstructure:"APP_ADDR"`
-	JWTAccessSecret       string `mapstructure:"JWT_ACCESS_SECRET"`
-	JWTRefreshSecret      string `mapstructure:"JWT_REFRESH_SECRET"`
-	JWTVerificationSecret string `mapstructure:"JWT_VERIFICATION_SECRET"`
-	SMTPHost              string `mapstructure:"SMTP_HOST"`
-	SMTPPort              string `mapstructure:"SMTP_PORT"`
-	SMTPSender            string `mapstructure:"SMTP_SENDER"`
-	SMTPEmail             string `mapstructure:"SMTP_EMAIL"`
-	SMTPPassword          string `mapstructure:"SMTP_PASSWORD"`
+	DatabaseURL           string `mapstructure:"DATABASE_URL" validate:"required"`
+	DatabaseHost          string `mapstructure:"DATABASE_HOST" validate:"required"`
+	DatabaseUser          string `mapstructure:"DATABASE_USER" validate:"required"`
+	DatabasePassword      string `mapstructure:"DATABASE_PASSWORD" validate:"required"`
+	DatabaseName          string `mapstructure:"DATABASE_NAME" validate:"required"`
+	DatabasePort          int    `mapstructure:"DATABASE_PORT" validate:"required"`
+	AppEnv                string `mapstructure:"APP_ENV" validate:"required"`
+	AppAddr               string `mapstructure:"APP_ADDR" validate:"required"`
+	JWTAccessSecret       string `mapstructure:"JWT_ACCESS_SECRET" validate:"required"`
+	JWTRefreshSecret      string `mapstructure:"JWT_REFRESH_SECRET" validate:"required"`
+	JWTVerificationSecret string `mapstructure:"JWT_VERIFICATION_SECRET" validate:"required"`
+	SMTPHost              string `mapstructure:"SMTP_HOST" validate:"required"`
+	SMTPPort              string `mapstructure:"SMTP_PORT" validate:"required"`
+	SMTPSender            string `mapstructure:"SMTP_SENDER" validate:"required"`
+	SMTPEmail             string `mapstructure:"SMTP_EMAIL" validate:"required"`
+	SMTPPassword          string `mapstructure:"SMTP_PASSWORD" validate:"required"`
+	RedisHost             string `mapstructure:"REDIS_HOST" validate:"required"`
+	RedisPort             string `mapstructure:"REDIS_PORT" validate:"required"`
+	RedisPassword         string `mapstructure:"REDIS_PASSWORD" validate:"omitempty"`
 }
+
 
 func GetEnvs() (Env, error) {
 	viper.SetDefault("APP_ENV", "development")
@@ -35,12 +39,13 @@ func GetEnvs() (Env, error) {
 	_ = viper.ReadInConfig()
 
 	var env Env
-
 	if err := viper.Unmarshal(&env); err != nil {
 		return Env{}, err
 	}
-	if env.DatabaseURL == "" {
-		return Env{}, fmt.Errorf("DATABASE_URL is required")
+
+	validate := validator.New()
+	if err := validate.Struct(env); err != nil {
+		return Env{}, err
 	}
 
 	return env, nil

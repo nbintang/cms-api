@@ -34,7 +34,7 @@ func InitMigrate(ctx context.Context) error {
 }
 
 func createEnums(ctx context.Context, db *gorm.DB) error {
-	return db.Transaction(func(tx *gorm.DB) error {
+	return db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Debug().Exec(`
 		DO $$ BEGIN
 			CREATE TYPE role_type AS ENUM ('ADMIN', 'MEMBER');
@@ -54,5 +54,4 @@ func createEnums(ctx context.Context, db *gorm.DB) error {
 		}
 		return nil
 	})
-
 }

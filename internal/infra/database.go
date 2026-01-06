@@ -10,6 +10,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
+
 type databaseImpl struct {
 	db *gorm.DB
 }

@@ -31,7 +31,13 @@ func NewAuthService(
 	env config.Env,
 	logger *infra.AppLogger,
 ) AuthService {
-	return &authService{userRepo, tokenService, emailService, env, logger}
+	return &authService{
+		userRepo,
+		tokenService,
+		emailService,
+		env,
+		logger,
+	}
 }
 
 func (s *authService) Register(ctx context.Context, dto *RegisterRequestDTO) error {
@@ -152,7 +158,6 @@ func (s *authService) generateTokens(ID string, Email string) (Tokens, error) {
 	tokens.RefreshToken = refreshToken
 	return tokens, nil
 }
-
 
 func (s *authService) RefreshToken(ctx context.Context, refreshToken string) (Tokens, error) {
 	claims, err := s.tokenService.VerifyToken(refreshToken, s.env.JWTRefreshSecret)

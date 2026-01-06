@@ -23,10 +23,10 @@ type EmailService interface {
 
 type emailServiceImpl struct {
 	env    config.Env
-	logger *AppLogger 
+	logger *AppLogger
 }
 
-func NewEmailService(env config.Env, logger *AppLogger ) EmailService {
+func NewEmailService(env config.Env, logger *AppLogger) EmailService {
 	return &emailServiceImpl{env, logger}
 }
 func (s *emailServiceImpl) SendEmail(params EmailParams) error {

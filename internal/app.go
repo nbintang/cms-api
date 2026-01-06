@@ -28,7 +28,7 @@ func NewApp(env config.Env) *App {
 		return c.Status(200).SendString("Wellcome to API")
 	})
 
-	protected := api.Group("/protected");
+	protected := api.Group("/protected")
 
 	protected.Use(middleware.AuthAccess(env), middleware.CurrentAuthUser())
 
