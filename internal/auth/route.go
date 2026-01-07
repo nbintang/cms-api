@@ -29,5 +29,6 @@ func (r *authRouteImpl) RegisterRoute(api fiber.Router) {
 	auth.Post("/register", middleware.RateLimiter(middleware.RateLimiterParams{MaxLimit: 5}), r.h.Register)
 	auth.Post("/verify", middleware.RateLimiter(middleware.RateLimiterParams{MaxLimit: 5}), r.h.VerifyEmail)
 	auth.Post("/login", middleware.RateLimiter(middleware.RateLimiterParams{MaxLimit: 5}), r.h.Login)
+	auth.Delete("/logout", middleware.RateLimiter(middleware.RateLimiterParams{MaxLimit: 5}), r.h.Logout)
 	auth.Post("/refresh-token", r.h.RefreshToken)
 }

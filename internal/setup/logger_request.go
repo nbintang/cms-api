@@ -1,15 +1,27 @@
 package setup
 
 import (
-	"rest-fiber/internal/infra" 
+	"time"
 
-	"github.com/gofiber/fiber/v2" 
+	"rest-fiber/internal/infra"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/sirupsen/logrus"
 )
 
 func LoggerRequest(l *infra.AppLogger) fiber.Handler {
 	return func(c *fiber.Ctx) error {
+		start := time.Now()
 		err := c.Next()
-		l.Info("http_request")
+
+		l.WithFields(logrus.Fields{
+			"method":  c.Method(),
+			"path":    c.OriginalURL(),
+			"status":  c.Response().StatusCode(),
+			"latency": time.Since(start).String(),
+			"ip":      c.IP(),
+		}).Info("http_request")
+
 		return err
 	}
 }

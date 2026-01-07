@@ -138,7 +138,7 @@ func (s *authService) generateTokens(ID string, Email string) (Tokens, error) {
 		Email: Email,
 	},
 		s.env.JWTAccessSecret,
-		3*time.Hour,
+		15*time.Second,
 	)
 	if err != nil {
 		return tokens, err
@@ -176,4 +176,21 @@ func (s *authService) RefreshToken(ctx context.Context, refreshToken string) (To
 		return Tokens{}, errors.New("Email Not Verified")
 	}
 	return s.generateTokens(user.ID.String(), user.Email)
+}
+
+func (s *authService) Logout(ctx context.Context, refreshToken string) (bool, error) {
+	claims, err := s.tokenService.VerifyToken(refreshToken, s.env.JWTRefreshSecret)
+	if err != nil {
+		return false, err
+	}
+
+	userID := (*claims)["id"].(string)
+	user, err := s.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return false, err
+	}
+	if user == nil {
+		return true, errors.New("User Not Found")
+	}
+	return true, err
 }

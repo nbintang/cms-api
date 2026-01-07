@@ -7,7 +7,6 @@ import (
 	"go.uber.org/fx"
 )
 
-var RunApp = func(lc fx.Lifecycle, a *App) { a.Run(lc) }
 var Module = fx.Module(
 	"app",
 	user.Module,
@@ -15,6 +14,6 @@ var Module = fx.Module(
 	fx.Provide(NewApp),
 	fx.Invoke(
 		RegisterAllRoutes,
-		RunApp,
+		RegisterHttpLifecycle,
 	),
 )

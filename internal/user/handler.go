@@ -1,6 +1,8 @@
 package user
 
-import ( 
+import (
+	"rest-fiber/internal/setup"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 )
@@ -19,7 +21,7 @@ func (h *userHandlerImpl) GetAllUsers(c *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	return c.JSON(userResponses)
+	return c.Status(fiber.StatusOK).JSON(setup.NewHttpResponse(fiber.StatusOK, userResponses, "Success"))
 }
 
 func (h *userHandlerImpl) GetUserByID(c *fiber.Ctx) error {
@@ -35,5 +37,5 @@ func (h *userHandlerImpl) GetUserByID(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusNotFound, err.Error())
 	}
 
-	return c.Status(fiber.StatusOK).JSON(userResponse)
+	return c.Status(fiber.StatusOK).JSON(setup.NewHttpResponse(fiber.StatusOK, userResponse, "Success"))
 }

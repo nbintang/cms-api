@@ -1,6 +1,6 @@
 package config
 
-import ( 
+import (
 	"strings"
 
 	"github.com/go-playground/validator/v10"
@@ -14,6 +14,7 @@ type Env struct {
 	DatabasePassword      string `mapstructure:"DATABASE_PASSWORD" validate:"required"`
 	DatabaseName          string `mapstructure:"DATABASE_NAME" validate:"required"`
 	DatabasePort          int    `mapstructure:"DATABASE_PORT" validate:"required"`
+	DatabaseSSLMode       string `mapstructure:"DATABASE_SSL_MODE" validate:"omitempty"`
 	AppEnv                string `mapstructure:"APP_ENV" validate:"required"`
 	AppAddr               string `mapstructure:"APP_ADDR" validate:"required"`
 	JWTAccessSecret       string `mapstructure:"JWT_ACCESS_SECRET" validate:"required"`
@@ -28,7 +29,6 @@ type Env struct {
 	RedisPort             string `mapstructure:"REDIS_PORT" validate:"required"`
 	RedisPassword         string `mapstructure:"REDIS_PASSWORD" validate:"omitempty"`
 }
-
 
 func GetEnvs() (Env, error) {
 	viper.SetDefault("APP_ENV", "development")

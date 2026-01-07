@@ -7,4 +7,5 @@ type AuthHandler interface {
 	VerifyEmail(c *fiber.Ctx) error
 	Login(c *fiber.Ctx) error
 	RefreshToken(c *fiber.Ctx) error
+	Logout(c *fiber.Ctx) error
 }

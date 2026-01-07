@@ -13,5 +13,8 @@ var Module = fx.Module(
 		NewEmailService,
 		NewRedisService,
 	),
-	fx.Invoke(RegisterRedisLifecycle),
+	fx.Invoke(
+		RegisterRedisLifecycle,
+		RegisterDatabaseLifecycle,
+	),
 )
