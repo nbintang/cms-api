@@ -26,6 +26,7 @@ func (s *userServiceImpl) FindAllUsers(ctx context.Context) ([]UserResponseDTO, 
 		userResponses = append(userResponses, UserResponseDTO{
 			ID:        user.ID,
 			Name:      user.Name,
+			AvatarURL: user.AvatarURL,
 			Email:     user.Email,
 			CreatedAt: user.CreatedAt,
 		})

@@ -3,14 +3,13 @@ package auth
 import (
 	"rest-fiber/config"
 	"rest-fiber/internal/infra"
-	"rest-fiber/internal/setup"
-	"strings"
+	"rest-fiber/internal/setup" 
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 )
 
-type authHandler struct {
+type authHandlerImpl struct {
 	authService AuthService
 	validate    infra.Validator
 	env         config.Env
@@ -18,10 +17,10 @@ type authHandler struct {
 }
 
 func NewAuthHandler(authService AuthService, validate infra.Validator, env config.Env, logger *infra.AppLogger) AuthHandler {
-	return &authHandler{authService, validate, env, logger}
+	return &authHandlerImpl{authService, validate, env, logger}
 }
 
-func (h *authHandler) Register(c *fiber.Ctx) error {
+func (h *authHandlerImpl) Register(c *fiber.Ctx) error {
 	var dto RegisterRequestDTO
 	ctx := c.UserContext()
 
@@ -38,7 +37,7 @@ func (h *authHandler) Register(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(setup.NewHttpResponse(fiber.StatusCreated, "Success! please check your email", nil))
 }
 
-func (h *authHandler) VerifyEmail(c *fiber.Ctx) error {
+func (h *authHandlerImpl) VerifyEmail(c *fiber.Ctx) error {
 	token := c.Query("token")
 	ctx := c.UserContext()
 	tokens, err := h.authService.VerifyEmailToken(ctx, token)
@@ -53,7 +52,7 @@ func (h *authHandler) VerifyEmail(c *fiber.Ctx) error {
 	))
 }
 
-func (h *authHandler) Login(c *fiber.Ctx) error {
+func (h *authHandlerImpl) Login(c *fiber.Ctx) error {
 	var dto LoginRequestDTO
 	ctx := c.UserContext()
 	if err := c.BodyParser(&dto); err != nil {
@@ -72,23 +71,20 @@ func (h *authHandler) Login(c *fiber.Ctx) error {
 		))
 }
 
-func (h *authHandler) RefreshToken(c *fiber.Ctx) error {
+func (h *authHandlerImpl) RefreshToken(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 	oldRefreshToken := c.Cookies("refresh_token")
-	oldAccessToken := c.Get("Authorization") 
-	oldAccessToken = strings.TrimPrefix(oldAccessToken, "Bearer ")
 	if oldRefreshToken == "" {
 		return fiber.NewError(fiber.StatusUnauthorized, "no refresh token provided")
 	}
 
-	tokens, err := h.authService.RefreshToken(ctx, oldRefreshToken, oldAccessToken)
+	tokens, err := h.authService.RefreshToken(ctx, oldRefreshToken)
 	if err != nil {
 		h.clearRefreshTokenCookie(c)
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
 
 	h.setRefreshTokenCookie(c, tokens.RefreshToken)
-
 	return c.Status(fiber.StatusOK).JSON(setup.NewHttpResponse(
 		fiber.StatusOK,
 		"Refresh Token successful",
@@ -96,7 +92,7 @@ func (h *authHandler) RefreshToken(c *fiber.Ctx) error {
 	))
 }
 
-func (h *authHandler) Logout(c *fiber.Ctx) error {
+func (h *authHandlerImpl) Logout(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 	refreshToken := c.Cookies("refresh_token")
 	err := h.authService.Logout(ctx, refreshToken)
@@ -107,7 +103,7 @@ func (h *authHandler) Logout(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusBadRequest).JSON(setup.NewHttpResponse(fiber.StatusOK, "logout Success", nil))
 }
 
-func (h *authHandler) setRefreshTokenCookie(c *fiber.Ctx, token string) {
+func (h *authHandlerImpl) setRefreshTokenCookie(c *fiber.Ctx, token string) {
 	c.Cookie(&fiber.Cookie{
 		Name:     "refresh_token",
 		Value:    token,
@@ -117,7 +113,7 @@ func (h *authHandler) setRefreshTokenCookie(c *fiber.Ctx, token string) {
 		Path:     "/",
 	})
 }
-func (h *authHandler) clearRefreshTokenCookie(c *fiber.Ctx) {
+func (h *authHandlerImpl) clearRefreshTokenCookie(c *fiber.Ctx) {
 	c.Cookie(&fiber.Cookie{
 		Name:     "refresh_token",
 		Value:    "",

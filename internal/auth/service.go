@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 )
 
 type Tokens struct {
@@ -19,7 +20,7 @@ type Tokens struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
-type authService struct {
+type authServiceImpl struct {
 	userRepo     user.UserRepository
 	tokenService infra.TokenService
 	emailService infra.EmailService
@@ -36,10 +37,9 @@ func NewAuthService(
 	env config.Env,
 	logger *infra.AppLogger,
 ) AuthService {
-	return &authService{userRepo, tokenService, emailService, redisService, env, logger}
+	return &authServiceImpl{userRepo, tokenService, emailService, redisService, env, logger}
 }
-
-func (s *authService) Register(ctx context.Context, dto *RegisterRequestDTO) error {
+func (s *authServiceImpl) Register(ctx context.Context, dto *RegisterRequestDTO) error {
 	exists, err := s.userRepo.FindExistsByEmail(ctx, dto.Email)
 	if err != nil {
 		return err
@@ -51,7 +51,6 @@ func (s *authService) Register(ctx context.Context, dto *RegisterRequestDTO) err
 	if err != nil {
 		return err
 	}
-
 	user := user.User{
 		AvatarURL: dto.AvatarURL,
 		Name:      dto.Name,
@@ -71,15 +70,13 @@ func (s *authService) Register(ctx context.Context, dto *RegisterRequestDTO) err
 			Message: s.env.TargetURL + token,
 			Reciever: infra.EmailReciever{
 				Email: user.Email,
-			},
-		}); err != nil {
+			}}); err != nil {
 			s.logger.Error(err)
 		}
 	}()
 	return nil
 }
-
-func (s *authService) Login(ctx context.Context, dto *LoginRequestDTO) (Tokens, error) {
+func (s *authServiceImpl) Login(ctx context.Context, dto *LoginRequestDTO) (Tokens, error) {
 	user, err := s.userRepo.FindByEmail(ctx, dto.Email)
 	if err != nil {
 		return Tokens{}, err
@@ -88,17 +85,86 @@ func (s *authService) Login(ctx context.Context, dto *LoginRequestDTO) (Tokens, 
 		return Tokens{}, errors.New("User Not Found")
 	}
 	if err := pkg.ComparePassword(dto.Password, user.Password); err != nil {
-		s.logger.Errorf("bcrypt compare failed: %v (hash=%q)", err, user.Password)
 		return Tokens{}, errors.New("Invalid Password")
 	}
 	if user.IsEmailVerified == false {
 		return Tokens{}, errors.New("Email Not Verified")
 	}
-
 	return s.generateTokens(ctx, user.ID.String(), user.Email)
 }
+func (s *authServiceImpl) RefreshToken(ctx context.Context, refreshToken string) (Tokens, error) {
+	claims, err := s.tokenService.VerifyToken(refreshToken, s.env.JWTRefreshSecret)
+	if err != nil {
+		return Tokens{}, err
+	}
+	userID, _ := (*claims)["id"].(string)
+	oldRT, ok := (*claims)["jti"].(string)
+	if !ok || oldRT == "" || userID == "" {
+		return Tokens{}, errors.New("invalid token claims")
+	}
+	storedUserID, exists, err := s.redisService.GetAndDel(ctx, "refresh:"+oldRT)
+	if err != nil {
+		return Tokens{}, err
+	}
+	if !exists || storedUserID != userID {
+		s.logger.Warnf("refresh token reuse detected for user %s with JTI %s", userID, oldRT)
+		s.revokeAllUserTokens(ctx, userID)
+		return Tokens{}, errors.New("token reuse detected")
+	}
+	s.blacklistAccessByRefreshJTI(ctx, oldRT)
+	s.redisService.Del(ctx, "rt_access:"+oldRT, "rt_access_exp:"+oldRT)
+	s.redisService.SRem(ctx, "user_tokens:"+userID, oldRT)
+	u, err := s.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return Tokens{}, err
+	}
+	if u == nil {
+		return Tokens{}, errors.New("User Not Found")
+	}
+	if !u.IsEmailVerified {
+		return Tokens{}, errors.New("Email Not Verified")
+	}
+	return s.generateTokens(ctx, u.ID.String(), u.Email)
+}
 
-func (s *authService) VerifyEmailToken(ctx context.Context, verificationToken string) (Tokens, error) {
+func (s *authServiceImpl) generateTokens(ctx context.Context, ID string, Email string) (Tokens, error) {
+	accessTTL := 15 * time.Minute
+	refreshTTL := 24 * time.Hour
+	accessJTI := uuid.NewString()
+	accessExpUnix := time.Now().Add(accessTTL).Unix()
+	accessToken, err := s.tokenService.GenerateToken(&infra.GenerateTokenParams{ID: ID, Email: Email, Role: enums.Member, JTI: accessJTI, Type: enums.TokenAccess}, s.env.JWTAccessSecret, accessTTL)
+
+	if err != nil {
+		return Tokens{}, err
+	}
+	refreshJTI := uuid.NewString()
+	refreshToken, err := s.tokenService.GenerateToken(&infra.GenerateTokenParams{ID: ID, Email: Email, Role: enums.Member, JTI: refreshJTI, Type: enums.TokenRefresh}, s.env.JWTRefreshSecret, refreshTTL)
+	if err != nil {
+		return Tokens{}, err
+	}
+
+	if err := s.redisService.Set(ctx, "refresh:"+refreshJTI, ID, refreshTTL); err != nil {
+		return Tokens{}, err
+	}
+	if err := s.redisService.Set(ctx, "rt_access:"+refreshJTI, accessJTI, refreshTTL); err != nil {
+		s.redisService.Del(ctx, "refresh:"+refreshJTI)
+		return Tokens{}, err
+	}
+	if err := s.redisService.Set(ctx, "rt_access_exp:"+refreshJTI, accessExpUnix, refreshTTL); err != nil {
+		s.redisService.Del(ctx, "refresh:"+refreshJTI, "rt_access:"+refreshJTI)
+		return Tokens{}, err
+	}
+	if err := s.redisService.SAdd(ctx, "user_tokens:"+ID, refreshJTI, refreshTTL); err != nil {
+		s.redisService.Del(ctx,
+			"refresh:"+refreshJTI,
+			"rt_access:"+refreshJTI,
+			"rt_access_exp:"+refreshJTI,
+		)
+		return Tokens{}, err
+	}
+	return Tokens{AccessToken: accessToken, RefreshToken: refreshToken}, nil
+}
+func (s *authServiceImpl) VerifyEmailToken(ctx context.Context, verificationToken string) (Tokens, error) {
 	claims, err := s.tokenService.VerifyToken(verificationToken, s.env.JWTVerificationSecret)
 	if err != nil {
 		return Tokens{}, err
@@ -119,7 +185,7 @@ func (s *authService) VerifyEmailToken(ctx context.Context, verificationToken st
 	return s.generateTokens(ctx, user.ID.String(), user.Email)
 }
 
-func (s *authService) generateVerificationToken(ID string) (string, error) {
+func (s *authServiceImpl) generateVerificationToken(ID string) (string, error) {
 	return s.tokenService.GenerateToken(&infra.GenerateTokenParams{
 		ID:   ID,
 		Role: enums.Member,
@@ -129,159 +195,74 @@ func (s *authService) generateVerificationToken(ID string) (string, error) {
 	)
 }
 
-func (s *authService) generateTokens(ctx context.Context, ID string, Email string) (Tokens, error) {
-	accessTTL := 15 * time.Minute
-	refereshTTL := 24 * time.Hour
-	accessJTI := uuid.NewString()
-	accessExpUnix := time.Now().Add(accessTTL).Unix()
-	accessToken, err := s.tokenService.GenerateToken(&infra.GenerateTokenParams{
-		ID:    ID,
-		Email: Email,
-		Role:  enums.Member,
-		JTI:   accessJTI,
-		Type:  enums.TokenAccess,
-	},
-		s.env.JWTAccessSecret,
-		accessTTL,
-	)
-	if err != nil {
-		return Tokens{}, err
+func (s *authServiceImpl) Logout(ctx context.Context, refreshToken string) error {
+	if refreshToken == "" {
+		return errors.New("no refresh token")
 	}
-	refreshJTI := uuid.NewString()
-	refreshToken, err := s.tokenService.GenerateToken(&infra.GenerateTokenParams{
-		ID:    ID,
-		Email: Email,
-		Role:  enums.Member,
-		Type:  enums.TokenRefresh,
-		JTI:   refreshJTI,
-	},
-		s.env.JWTRefreshSecret,
-		refereshTTL,
-	)
-	if err != nil {
-		return Tokens{}, err
-	}
-
-	refreshKey := "refresh:" + refreshJTI
-	if err := s.redisService.Set(ctx, refreshKey, ID, refereshTTL); err != nil {
-		return Tokens{}, err
-	}
-
-	rtAccessKey := "rt_access:" + refreshJTI
-	s.redisService.Set(ctx, rtAccessKey, accessJTI, refereshTTL)
-	rtAccessExpKey := "rt_access_exp:" + refreshJTI
-	s.redisService.Set(ctx, rtAccessExpKey, accessExpUnix, refereshTTL)
-
-	userTokenKey := "user_tokens:" + ID
-	s.redisService.SAdd(ctx, userTokenKey, refreshJTI, refereshTTL)
-
-	return Tokens{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-	}, nil
-}
-
-func (s *authService) RefreshToken(ctx context.Context, refreshToken string, oldAccessToken string) (Tokens, error) {
-	claims, err := s.tokenService.VerifyToken(refreshToken, s.env.JWTRefreshSecret)
-	if err != nil {
-		return Tokens{}, err
-	}
-	userID := (*claims)["id"].(string)
-	oldRT, ok := (*claims)["jti"].(string)
-	if !ok {
-		return Tokens{}, errors.New("missing jti")
-	}
-	key := "refresh:" + oldRT
-	storedUserID, exists, err := s.redisService.GetAndDel(ctx, key)
-	if err != nil {
-		return Tokens{}, err
-	}
-	if !exists || storedUserID != userID {
-		s.logger.Warnf("refresh token reuse detected for user %s with JTI %s", userID, oldRT)
-		s.revokeAllUserTokens(ctx, userID)
-		return Tokens{}, errors.New("token reuse detected")
-	}
-
-	oldAccessJTI, err := s.redisService.Get(ctx, "rt_access:"+oldRT)
-	if err == nil && oldAccessJTI != "" {
-		expStr, expErr := s.redisService.Get(ctx, "rt_access_exp:"+oldRT)
-		if expErr == nil {
-			expUnix, _ := strconv.ParseInt(expStr, 10, 64)
-			ttl := time.Until(time.Unix(expUnix, 0))
-			if ttl > 0 {
-				_ = s.redisService.Set(ctx, "blacklist_access:"+oldAccessJTI, "1", ttl)
-			}
-		}
-	}
-
-	s.redisService.Del(ctx, "rt_access:"+oldRT, "rt_access_exp:"+oldRT)
-	s.redisService.SRem(ctx, "user_tokens:"+userID, oldRT)
-
-	user, err := s.userRepo.FindByID(ctx, userID)
-	if err != nil {
-		return Tokens{}, err
-	}
-	if user == nil {
-		return Tokens{}, errors.New("User Not Found")
-	}
-	if user.IsEmailVerified == false {
-		return Tokens{}, errors.New("Email Not Verified")
-	}
-	return s.generateTokens(ctx, user.ID.String(), user.Email)
-}
-
-func (s *authService) Logout(ctx context.Context, refreshToken string) error {
 	claims, err := s.tokenService.VerifyToken(refreshToken, s.env.JWTRefreshSecret)
 	if err != nil {
 		return err
 	}
-	userID := (*claims)["id"].(string)
-	rtJTI := (*claims)["jti"].(string)
-	accessJTI, err := s.redisService.Get(ctx, "rt_access:"+rtJTI)
-	if err == nil && accessJTI != "" {
-		expStr, expErr := s.redisService.Get(ctx, "rt_access_exp:"+rtJTI)
-		if expErr == nil {
-			expUnix, _ := strconv.ParseInt(expStr, 10, 64)
-			ttl := time.Until(time.Unix(expUnix, 0))
-			if ttl > 0 {
-				_ = s.redisService.Set(ctx, "blacklist_access:"+accessJTI, "1", ttl)
-			}
-		}
+	userID, _ := (*claims)["id"].(string)
+	rtJTI, _ := (*claims)["jti"].(string)
+	if userID == "" || rtJTI == "" {
+		return errors.New("invalid token claims")
 	}
- 
-	_ = s.redisService.Del(ctx,
+	s.blacklistAccessByRefreshJTI(ctx, rtJTI)
+	s.redisService.Del(ctx,
 		"refresh:"+rtJTI,
 		"rt_access:"+rtJTI,
 		"rt_access_exp:"+rtJTI,
 	)
-	_ = s.redisService.SRem(ctx, "user_tokens:"+userID, rtJTI)
-	return err
+	s.redisService.SRem(ctx, "user_tokens:"+userID, rtJTI)
+	return nil
 }
-
-func (s *authService) revokeAllUserTokens(ctx context.Context, userID string) error {
+func (s *authServiceImpl) revokeAllUserTokens(ctx context.Context, userID string) error {
 	userTokensKey := "user_tokens:" + userID
-
-	jtis, err := s.redisService.SMembers(ctx, userTokensKey)
+	rtJTIs, err := s.redisService.SMembers(ctx, userTokensKey)
 	if err != nil {
+		if err == redis.Nil {
+			return nil
+		}
 		return err
 	}
-
-	for _, jti := range jtis {
-		key := "refresh:" + jti
-		s.redisService.Del(ctx, key)
+	for _, rtJTI := range rtJTIs {
+		s.blacklistAccessByRefreshJTI(ctx, rtJTI)
+		s.redisService.Del(ctx,
+			"refresh:"+rtJTI,
+			"rt_access:"+rtJTI,
+			"rt_access_exp:"+rtJTI,
+		)
 	}
-
 	s.redisService.Del(ctx, userTokensKey)
-
 	s.logger.Infof("revoke all tokens for user : %s", userID)
 	return nil
 }
+func (s *authServiceImpl) blacklistAccessByRefreshJTI(ctx context.Context, rtJTI string) error {
+	accessJTI, err := s.redisService.Get(ctx, "rt_access:"+rtJTI)
+	if err != nil {
+		if err != redis.Nil {
+			s.logger.Warnf("failed get rt_access for %s: %v", rtJTI, err)
+		}
+		return nil
+	}
+	if accessJTI == "" {
+		return nil
+	}
 
-// func (s *authService) blacklistAccessToken(ctx context.Context, token string, ttl time.Duration) error {
-// 	hash, err := pkg.HashToken(token)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	key := "blacklist:" + hash
-// 	return s.redis.Set(ctx, key, "1", ttl)
-// }
+	expStr, err := s.redisService.Get(ctx, "rt_access_exp:"+rtJTI)
+	if err != nil {
+		if err != redis.Nil {
+			s.logger.Warnf("failed get rt_access_exp for %s: %v", rtJTI, err)
+		}
+		return nil
+	}
+
+	expUnix, _ := strconv.ParseInt(expStr, 10, 64)
+	ttl := time.Until(time.Unix(expUnix, 0))
+	if ttl <= 0 {
+		return nil
+	}
+
+	return s.redisService.Set(ctx, "blacklist_access:"+accessJTI, "1", ttl)
+}
