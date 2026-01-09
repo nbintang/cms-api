@@ -16,12 +16,12 @@ func main() {
 
 	env, err := config.GetEnvs()
 	if err != nil {
-		logrus.Fatalf("Seed failed: %v", err)
+		logrus.Warnf("Seed failed: %v", err)
 	}
 
 	db, err := infra.GetDatabaseStandalone(env, dbLogger)
 	if err != nil {
-		logrus.Fatalf("Seed failed: %v", err)
+		logrus.Warnf("Seed failed: %v", err)
 	}
 
 	countFlag := flag.String("count", "1", "specify the count")
@@ -29,8 +29,10 @@ func main() {
 
 	count, err := strconv.Atoi(*countFlag)
 	if err != nil {
-		logrus.Fatalf("Invalid count: %v", err)
+		logrus.Warnf("Invalid count: %v", err)
 	}
 
-	InitSeeds(db, Options{Count: count})
+	if err := InitSeeds(db, Options{Count: count}); err != nil {
+		logrus.Warnf("Seed failed: %v", err)
+	}
 }

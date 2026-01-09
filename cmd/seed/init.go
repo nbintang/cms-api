@@ -20,11 +20,11 @@ type Options struct {
 	Count int
 }
 
-func InitSeeds(db *gorm.DB, opt Options) {
+func InitSeeds(db *gorm.DB, opt Options) error {
 	domain := "example.com"
 
 	if err := resetTables(db); err != nil {
-		panic(err)
+		return err
 	}
 
 	categoryPool := []string{
@@ -33,7 +33,7 @@ func InitSeeds(db *gorm.DB, opt Options) {
 	}
 	hashed, err := pkg.HashPassword("Password123")
 	if err != nil {
-		return
+		return err
 	}
 	for i := 0; i < opt.Count; i++ {
 		name := faker.Name()
@@ -64,9 +64,10 @@ func InitSeeds(db *gorm.DB, opt Options) {
 			DoNothing: true,
 		}).Create(&userSeed).Error; err != nil {
 			fmt.Printf("Error when create user: %s\n", userSeed.Name)
-			return
+			return err
 		}
 	}
+	return nil
 }
 
 func evenOddRole(i int) user.Role {
