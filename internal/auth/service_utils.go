@@ -88,6 +88,7 @@ func (s *authServiceImpl) revokeAllUserTokens(ctx context.Context, userID string
 	s.logger.Infof("revoke all tokens for user : %s", userID)
 	return nil
 }
+
 func (s *authServiceImpl) blacklistAccessByRefreshJTI(ctx context.Context, rtJTI string) error {
 	accessJTI, err := s.redisService.Get(ctx, "rt_access:"+rtJTI)
 	if err != nil {

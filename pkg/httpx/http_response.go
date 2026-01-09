@@ -1,15 +1,15 @@
 package httpx
 
-import (
-	"fmt"
-	"time"
-)
+import "fmt"
 
 type HttpResponse struct {
 	StatusCode int    `json:"status_code"`
 	Message    string `json:"message,omitempty"`
 	Data       any    `json:"data,omitempty"`
-	TimeStamp  int    `json:"timestamp,omitempty"`
+}
+type HttpPaginationResponse struct {
+	HttpResponse
+	Meta PaginationMeta `json:"meta,omitempty"`
 }
 
 func (e HttpResponse) Error() string {
@@ -21,6 +21,16 @@ func NewHttpResponse(statusCode int, message string, data any) HttpResponse {
 		StatusCode: statusCode,
 		Message:    message,
 		Data:       data,
-		TimeStamp:  int(time.Now().Unix()),
+	}
+}
+
+func NewHttpPaginationResponse[T any](statusCode int, message string, data T, meta PaginationMeta) HttpPaginationResponse {
+	return HttpPaginationResponse{
+		HttpResponse{
+			StatusCode: statusCode,
+			Message:    message,
+			Data:       data,
+		},
+		meta,
 	}
 }

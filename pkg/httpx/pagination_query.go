@@ -21,7 +21,8 @@ func (q PaginationQuery) Normalize(defaultLimit, maxLimit int) PaginationQuery {
 	return q
 }
 
-func (q PaginationQuery) Validate() error {
+
+func (q PaginationQuery) RequirePaginate() error {
 	if q.Page <= 0 {
 		return errors.New("page must be greater than 0")
 	}

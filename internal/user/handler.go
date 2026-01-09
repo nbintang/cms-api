@@ -24,10 +24,6 @@ func (h *userHandlerImpl) GetAllUsers(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
 
-	if err := query.Validate(); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, err.Error())
-	}
-
 	query = query.Normalize(10, 100)
 
 	data, total, err := h.userService.FindAllUsers(ctx, query.Page, query.Limit, query.Offset())
@@ -35,12 +31,13 @@ func (h *userHandlerImpl) GetAllUsers(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
-	meta := httpx.NewPaginationResponse(query.Page, query.Limit, total)
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"message": "Success",
-		"data":    data,
-		"meta":    meta,
-	})
+	meta := httpx.NewPaginationMeta(query.Page, query.Limit, total)
+	return c.Status(fiber.StatusOK).JSON(httpx.NewHttpPaginationResponse[[]UserResponseDTO](
+		fiber.StatusOK,
+		"Success",
+		data,
+		meta,
+	))
 }
 
 func (h *userHandlerImpl) GetUserByID(c *fiber.Ctx) error {
