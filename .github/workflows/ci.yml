@@ -9,6 +9,7 @@ jobs:
   build-test:
     runs-on: ubuntu-latest
     environment: .env
+
     env:
       # Database
       DATABASE_HOST: ${{ vars.DATABASE_HOST }}
@@ -52,6 +53,17 @@ jobs:
 
       - name: Download deps
         run: go mod download
+
+      - name: Debug env presence (safe)
+        run: |
+          echo "DATABASE_HOST set? ${{ vars.DATABASE_HOST != '' }}"
+          echo "DATABASE_NAME set? ${{ vars.DATABASE_NAME != '' }}"
+          echo "DATABASE_PORT set? ${{ vars.DATABASE_PORT != '' }}"
+          echo "DATABASE_USER secret set? ${{ secrets.DATABASE_USER != '' }}"
+          echo "DATABASE_PASSWORD secret set? ${{ secrets.DATABASE_PASSWORD != '' }}"
+          echo "REDIS_HOST set? ${{ vars.REDIS_HOST != '' }}"
+          echo "REDIS_PORT set? ${{ vars.REDIS_PORT != '' }}"
+          echo "REDIS_PASSWORD secret set? ${{ secrets.REDIS_PASSWORD != '' }}"
 
       - name: Migrate
         run: go run ./cmd/migrate
