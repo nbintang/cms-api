@@ -6,9 +6,9 @@ import (
 	"go.uber.org/fx"
 )
 
-type RouteConstructor[T any, R any] func(T) R
+type RouteConstructor[P any, R any] func(P) R
 
-func RouteProvider[T any, R any](routeConstructor RouteConstructor[T, R], acc enums.EAccessType) any {
+func RouteProvider[P any, R any](routeConstructor RouteConstructor[P, R], acc enums.EAccessType) any {
 	return fx.Annotate(
 		routeConstructor,
 		fx.As(new(R)),
