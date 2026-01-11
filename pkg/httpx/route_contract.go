@@ -1,11 +1,11 @@
-package contract
+package httpx
 
 import "github.com/gofiber/fiber/v2"
 
 type Route interface {
-	RegisterRoute(api fiber.Router)
+	RegisterRoute(route fiber.Router)
 }
 
 type ProtectedRoute interface {
-	RegisterProtectedRoute(api fiber.Router)
+	RegisterProtectedRoute(route fiber.Router)
 }

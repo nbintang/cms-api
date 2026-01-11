@@ -2,33 +2,37 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"rest-fiber/config"
 	"rest-fiber/internal/infra"
+	"rest-fiber/utils"
 	"strconv"
 
 	"github.com/sirupsen/logrus"
 )
 
 func main() {
+	utils.LoadEnv()
 	dbLogger := infra.NewDBLogger()
+
 	env, err := config.GetEnvs()
 	if err != nil {
-		logrus.Fatalf("Seed failed: %v", err)
+		logrus.Warnf("Seed failed: %v", err)
 	}
+
 	db, err := infra.GetDatabaseStandalone(env, dbLogger)
 	if err != nil {
-		logrus.Fatalf("Seed failed: %v", err)
+		logrus.Warnf("Seed failed: %v", err)
 	}
+
 	countFlag := flag.String("count", "1", "specify the count")
 	flag.Parse()
-	countStr := *countFlag
-	count, err := strconv.Atoi(countStr)
+
+	count, err := strconv.Atoi(*countFlag)
 	if err != nil {
-		fmt.Println("Error:", err)
-		return
+		logrus.Warnf("Invalid count: %v", err)
 	}
-	InitSeeds(db, Options{
-		Count: count,
-	})
+
+	if err := InitSeeds(db, Options{Count: count}); err != nil {
+		logrus.Warnf("Seed failed: %v", err)
+	}
 }

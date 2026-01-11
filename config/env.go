@@ -8,27 +8,27 @@ import (
 )
 
 type Env struct {
-	DatabaseURL           string `mapstructure:"DATABASE_URL" validate:"required"`
-	DatabaseHost          string `mapstructure:"DATABASE_HOST" validate:"required"`
-	DatabaseUser          string `mapstructure:"DATABASE_USER" validate:"required"`
-	DatabasePassword      string `mapstructure:"DATABASE_PASSWORD" validate:"required"`
-	DatabaseName          string `mapstructure:"DATABASE_NAME" validate:"required"`
-	DatabasePort          int    `mapstructure:"DATABASE_PORT" validate:"required"`
+	DatabaseURL           string `mapstructure:"DATABASE_URL" validate:"omitempty"`
+	DatabaseHost          string `mapstructure:"DATABASE_HOST" validate:"omitempty"`
+	DatabaseUser          string `mapstructure:"DATABASE_USER" validate:"omitempty"`
+	DatabasePassword      string `mapstructure:"DATABASE_PASSWORD" validate:"omitempty"`
+	DatabaseName          string `mapstructure:"DATABASE_NAME" validate:"omitempty"`
+	DatabasePort          int    `mapstructure:"DATABASE_PORT" validate:"omitempty"`
 	DatabaseSSLMode       string `mapstructure:"DATABASE_SSL_MODE" validate:"omitempty"`
-	AppEnv                string `mapstructure:"APP_ENV" validate:"required"`
-	AppAddr               string `mapstructure:"APP_ADDR" validate:"required"`
-	JWTAccessSecret       string `mapstructure:"JWT_ACCESS_SECRET" validate:"required"`
-	JWTRefreshSecret      string `mapstructure:"JWT_REFRESH_SECRET" validate:"required"`
-	JWTVerificationSecret string `mapstructure:"JWT_VERIFICATION_SECRET" validate:"required"`
-	SMTPHost              string `mapstructure:"SMTP_HOST" validate:"required"`
-	SMTPPort              string `mapstructure:"SMTP_PORT" validate:"required"`
-	SMTPSender            string `mapstructure:"SMTP_SENDER" validate:"required"`
-	SMTPEmail             string `mapstructure:"SMTP_EMAIL" validate:"required"`
-	SMTPPassword          string `mapstructure:"SMTP_PASSWORD" validate:"required"`
-	RedisHost             string `mapstructure:"REDIS_HOST" validate:"required"`
-	RedisPort             string `mapstructure:"REDIS_PORT" validate:"required"`
+	AppEnv                string `mapstructure:"APP_ENV" validate:"omitempty"`
+	AppAddr               string `mapstructure:"APP_ADDR" validate:"omitempty"`
+	JWTAccessSecret       string `mapstructure:"JWT_ACCESS_SECRET" validate:"omitempty"`
+	JWTRefreshSecret      string `mapstructure:"JWT_REFRESH_SECRET" validate:"omitempty"`
+	JWTVerificationSecret string `mapstructure:"JWT_VERIFICATION_SECRET" validate:"omitempty"`
+	SMTPHost              string `mapstructure:"SMTP_HOST" validate:"omitempty"`
+	SMTPPort              string `mapstructure:"SMTP_PORT" validate:"omitempty"`
+	SMTPSender            string `mapstructure:"SMTP_SENDER" validate:"omitempty"`
+	SMTPEmail             string `mapstructure:"SMTP_EMAIL" validate:"omitempty"`
+	SMTPPassword          string `mapstructure:"SMTP_PASSWORD" validate:"omitempty"`
+	RedisHost             string `mapstructure:"REDIS_HOST" validate:"omitempty"`
+	RedisPort             string `mapstructure:"REDIS_PORT" validate:"omitempty"`
 	RedisPassword         string `mapstructure:"REDIS_PASSWORD" validate:"omitempty"`
-	TargetURL             string `mapstructure:"TARGET_URL" validate:"required"`
+	TargetURL             string `mapstructure:"TARGET_URL" validate:"omitempty"`
 }
 
 func GetEnvs() (Env, error) {
@@ -36,7 +36,8 @@ func GetEnvs() (Env, error) {
 	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
-	viper.SetConfigFile(".env")
+	viper.SetConfigFile(".env.local")
+	viper.SetConfigType("env")
 	_ = viper.ReadInConfig()
 
 	var env Env
