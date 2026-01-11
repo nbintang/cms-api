@@ -12,5 +12,5 @@ type PostRepository interface {
 	ExistsByID(ctx context.Context, id string) (bool, error)
 	Create(ctx context.Context, post *Post) (uuid.UUID, error)
 	Update(ctx context.Context, id string, post *Post) (uuid.UUID, error)
-	 Delete(ctx context.Context, id string) error
+	Delete(ctx context.Context, id string) error
 }

@@ -20,8 +20,8 @@ type userRouteImpl struct {
 func NewUserRoute(params UserRouteParams) httpx.ProtectedRoute {
 	return &userRouteImpl{userHandler: params.UserHandler}
 }
-func (r *userRouteImpl) RegisterProtectedRoute(api fiber.Router) {
-	users := api.Group("/users")
+func (r *userRouteImpl) RegisterProtectedRoute(route fiber.Router) {
+	users := route.Group("/users")
 	users.Get("/me", r.userHandler.GetCurrentUserProfile)
 	users.Patch("/me", r.userHandler.UpdateCurrentUser)
 	users.Get("/", middleware.AuthRoleAccess(enums.Admin), r.userHandler.GetAllUsers)

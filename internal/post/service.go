@@ -58,7 +58,7 @@ func (s *postServiceImpl) FindPostByID(ctx context.Context, id string) (*PostRes
 	}, nil
 }
 
-func (s *postServiceImpl) CreatePost(ctx context.Context, dto CreatePostRequestDTO, userID string) (*PostResponseDTO, error) {
+func (s *postServiceImpl) CreatePost(ctx context.Context, dto PostRequestDTO, userID string) (*PostResponseDTO, error) {
 	exists, err := s.categoryRepo.ExistsByID(ctx, dto.CategoryID)
 	if err != nil {
 		return nil, err
@@ -97,7 +97,7 @@ func (s *postServiceImpl) CreatePost(ctx context.Context, dto CreatePostRequestD
 	}, nil
 }
 
-func (s *postServiceImpl) UpdatePost(ctx context.Context, id string, dto CreatePostRequestDTO, userID string) (*PostResponseDTO, error) {
+func (s *postServiceImpl) UpdatePostByID(ctx context.Context, id string, dto PostRequestDTO, userID string) (*PostResponseDTO, error) {
 	postExists, err := s.postRepo.ExistsByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -141,4 +141,21 @@ func (s *postServiceImpl) UpdatePost(ctx context.Context, id string, dto CreateP
 			Name: updated.Category.Name,
 		},
 	}, nil
+}
+
+func (s *postServiceImpl) DeletePostByID(ctx context.Context, id string) error {
+	postExists, err := s.postRepo.ExistsByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if !postExists {
+		return errors.New("Post Not Found")
+	}
+
+	if err := s.postRepo.Delete(ctx, id); err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -17,10 +17,11 @@ type postRouteImpl struct {
 func NewPostRoute(params PostRouteParams) httpx.ProtectedRoute {
 	return &postRouteImpl{postHandler: params.PostHandler}
 }
-func (r *postRouteImpl) RegisterProtectedRoute(api fiber.Router) {
-	posts := api.Group("/posts")
+func (r *postRouteImpl) RegisterProtectedRoute(route fiber.Router) {
+	posts := route.Group("/posts")
 	posts.Get("/", r.postHandler.GetAllPosts)
 	posts.Get("/:id", r.postHandler.GetPostByID)
 	posts.Post("/", r.postHandler.CreatePost)
-	posts.Patch("/:id", r.postHandler.UpdatePost)
+	posts.Patch("/:id", r.postHandler.UpdatePostByID)
+	posts.Delete("/:id", r.postHandler.DeletePostByID)
 }

@@ -60,7 +60,7 @@ func (h *postHandlerImpl) CreatePost(c *fiber.Ctx) error {
 		return err
 	}
 
-	var body CreatePostRequestDTO
+	var body PostRequestDTO
 	ctx := c.UserContext()
 	if err := c.BodyParser(&body); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
@@ -80,18 +80,18 @@ func (h *postHandlerImpl) CreatePost(c *fiber.Ctx) error {
 		data,
 	))
 }
-func (h *postHandlerImpl) UpdatePost(c *fiber.Ctx) error {
+func (h *postHandlerImpl) UpdatePostByID(c *fiber.Ctx) error {
 	currentUser, err := middleware.GetCurrentUser(c)
 	if err != nil {
 		return err
 	}
 
-	id:= c.Params("id");
+	id := c.Params("id")
 	if _, err := uuid.Parse(id); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "Invalid user id")
 	}
 
-	var body CreatePostRequestDTO
+	var body PostRequestDTO
 	ctx := c.UserContext()
 	if err := c.BodyParser(&body); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
@@ -100,14 +100,30 @@ func (h *postHandlerImpl) UpdatePost(c *fiber.Ctx) error {
 		return err
 	}
 
-	data, err := h.postService.UpdatePost(ctx, id, body, currentUser.ID)
+	data, err := h.postService.UpdatePostByID(ctx, id, body, currentUser.ID)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(httpx.NewHttpResponse[*PostResponseDTO](
-		fiber.StatusCreated,
+	return c.Status(fiber.StatusOK).JSON(httpx.NewHttpResponse[*PostResponseDTO](
+		fiber.StatusOK,
 		"Success",
 		data,
+	))
+}
+
+func (h *postHandlerImpl) DeletePostByID(c *fiber.Ctx) error {
+	id := c.Params("id")
+	if _, err := uuid.Parse(id); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "Invalid user id")
+	}
+	ctx := c.UserContext()
+	if err := h.postService.DeletePostByID(ctx, id); err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	return c.Status(fiber.StatusOK).JSON(httpx.NewHttpResponse[any](
+		fiber.StatusOK,
+		"Deleted Successfully	",
+		nil,
 	))
 }

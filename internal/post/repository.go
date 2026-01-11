@@ -48,7 +48,7 @@ func (r *postRepositoryImpl) FindByID(ctx context.Context, id string) (*Post, er
 	var post Post
 	if err := r.db.WithContext(ctx).
 		Scopes(WhereID(id), SelectedFields("category_id")).
-		Preload("Category", category.SelectPublicFields).
+		Preload("Category", category.SelectedFields).
 		Take(&post).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
@@ -67,24 +67,24 @@ func (r *postRepositoryImpl) Create(ctx context.Context, post *Post) (uuid.UUID,
 
 func (r *postRepositoryImpl) Update(ctx context.Context, id string, post *Post) (uuid.UUID, error) {
 	uid, err := uuid.Parse(id)
-		if err != nil {
-			return uuid.Nil, err
-		}
+	if err != nil {
+		return uuid.Nil, err
+	}
 
-		tx := r.db.WithContext(ctx).
-			Model(&Post{}).
-			Scopes(WhereID(id)).
-			Updates(post)  
+	tx := r.db.WithContext(ctx).
+		Model(&Post{}).
+		Scopes(WhereID(id)).
+		Updates(post)
 
-		if tx.Error != nil {
-			return uuid.Nil, tx.Error
-		}
+	if tx.Error != nil {
+		return uuid.Nil, tx.Error
+	}
 
-		if tx.RowsAffected == 0 { 
-			return uuid.Nil, gorm.ErrRecordNotFound
-		}
+	if tx.RowsAffected == 0 {
+		return uuid.Nil, gorm.ErrRecordNotFound
+	}
 
-		return uid, nil
+	return uid, nil
 }
 func (r *postRepositoryImpl) Delete(ctx context.Context, id string) error {
 	if err := r.db.WithContext(ctx).
